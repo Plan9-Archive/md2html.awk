@@ -92,15 +92,6 @@ BEGIN {
 	$0 = $0 "</tr>";
 }
 
-# Code blocks
-/^(    |	)/ {
-	if(block != "code")
-		newblock("code");
-	sub(/^(    |	)/, "");
-	text = text $0 "\n";
-	next;
-}
-
 # Paragraph
 /^$/{
 	newblock();
@@ -127,7 +118,20 @@ BEGIN {
 	}
 	sub(/^([*+-]|(([0-9]+[\.-]?)+))[ 	]/,"");
 }
-nl > 0 { sub("^(  ? ?|	)","");}
+{
+	for(i = 0; i < nl; i++)
+		sub("^(  ? ?|	)","");
+}
+/^$/ { text = "<p>" text "</p>";
+
+# Code blocks
+/^(    |	)/ && block != "li" {
+	if(block != "code")
+		newblock("code");
+	sub(/^(    |	)/, "");
+	text = text $0 "\n";
+	next;
+}
 
 # Setex-style Headers
 # (Plus h3 with underscores.)
