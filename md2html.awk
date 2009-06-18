@@ -5,29 +5,30 @@
 
 function newblock(nblock){
 	if(block == "code")
-		print "<pre>"
+		text = "<pre>" text "</pre>";
 	if(text)
 		print "<" block ">" text "</" block ">";
-	if(block == "code")
-		print "</pre>"
 	text = "";
 	block = nblock ? nblock : "p";
 }
 
 function subinline(tgl, inl){
-	chunk = $0;
+	res = $0;
 	$0 = "";
-	while(match(line, tgl)){
-		if(substr(chunk, RSTART - 1, 1) != "\\"){
-			if(inline[ni] == inl)
-				ni -= sub(tgl, "</" inl ">", chunk);
-			else if (sub(tgl, "<" inl ">", chunk))
-				inline[++ni] = inl;
+	while(match(res, tgl)){
+		nres = substr(res, RSTART + RLENGTH);
+		if(inline[ni] == inl){
+			tag = "</" inl ">";
+			ni--;
 		}
-		$0 = $0 substr(chunk, 0, RSTART + RLENGTH);
-		chunk = substr(chunk, RLENGTH + 1);
+		else {
+			tag = "<" inl ">";
+			inline[++ni] = inl;
+		}
+		$0 = $0 substr(res, 0, RSTART - 1) tag;
+		res = nres;
 	}
-	$0 = $0 chunk;
+	$0 = $0 res;
 }
 
 function dolink(href, lnk){
@@ -91,6 +92,15 @@ BEGIN {
 	$0 = $0 "</tr>";
 }
 
+# Code blocks
+/^(    |	)/ {
+	if(block != "code")
+		newblock("code");
+	sub(/^(    |	)/, "");
+	text = text $0 "\n";
+	next;
+}
+
 # Paragraph
 /^$/{
 	newblock();
@@ -100,7 +110,7 @@ BEGIN {
 }
 
 # Ordered and unordered (possibly nested) lists
-/^(  ? ?|	)*[*+-]|(([0-9]+\.)+[ 	])/{
+/^(  ? ?|	)*([*+-]|(([0-9]+\.)+))[ 	]/ {
 	newblock("li");
 	nnl = 0;
 	while(match($0, /^(  ? ?|	)/))
@@ -118,16 +128,6 @@ BEGIN {
 	sub(/^([*+-]|(([0-9]+[\.-]?)+))[ 	]/,"");
 }
 nl > 0 { sub("^(  ? ?|	)","");}
-/^$/ { text = "<p>" text "</p>";}
-
-# Code blocks
-/^(    |	)/ {
-	if(block != "code")
-		newblock("code");
-	sub(/^(    |	)/, "");
-	text = text $0 "\n";
-	next;
-}
 
 # Setex-style Headers
 # (Plus h3 with underscores.)
