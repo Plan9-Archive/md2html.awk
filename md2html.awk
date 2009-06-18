@@ -65,7 +65,7 @@ BEGIN {
 }
 
 # Horizontal rules (_ is not in markdown)
-/^[ 	]*([-*_] ?)+[ 	]*$/ && text == "" {
+/^[ 	]*([-*_] ?)+[ 	]*$/ && text == "" { # TODO: md.pl comp
 	print "<hr>";
 	next;
 }
@@ -73,7 +73,7 @@ BEGIN {
 # Tables (not in markdown)
 # Syntax:
 # 		Right Align| 	Center Align	|Left Align
-/([ 	]\|)|(\|[ 	])/ {
+/([ 	]\|)|(\|[ 	])/ && block != "code" {
 	if(block != "table")
 		newblock("table");
 	nc = split($0, cells, "|");
@@ -101,7 +101,7 @@ BEGIN {
 }
 
 # Ordered and unordered (possibly nested) lists
-/^(  ? ?|	)*([*+-]|(([0-9]+\.)+))[ 	]/ {
+/^(  ? ?|	)*([*+-]|(([0-9]+\.)+))[ 	]/ && block != "code" {
 	newblock("li");
 	nnl = 0;
 	while(match($0, /^(  ? ?|	)/))
@@ -122,7 +122,7 @@ BEGIN {
 	for(i = 0; i < nl; i++)
 		sub("^(  ? ?|	)","");
 }
-/^$/ { text = "<p>" text "</p>";
+/^$/ { text = "<p>" text "</p>";} # TODO: multiple paragraphs
 
 # Code blocks
 /^(    |	)/ && block != "li" {
@@ -179,10 +179,10 @@ BEGIN {
 		gsub("&lt;[^A-Za-z !/]", "<<", $i);
 		gsub("<<&lt;", "<", $i);
 	}
-	# Inline
+	# Inline (TODO: underscores ?)
 	subinline("(\\*\\*)|(__)", "strong");
 	subinline("\\*", "em");
-	subinline("`", "code");
+	subinline("`", "code");	# TODO: html escaping
 	text = text (text ? " " : "") $0;
 }
 
