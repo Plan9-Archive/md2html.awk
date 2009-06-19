@@ -117,12 +117,16 @@ BEGIN {
 		print "<" list[nl] ">";
 	}
 	sub(/^([*+-]|(([0-9]+[\.-]?)+))[ 	]/,"");
+	lp = 0;	# beginning of the last list paragraph
 }
-{
-	for(i = 0; i < nl; i++)
-		sub("^(  ? ?|	)","");
+block == "li" {
+	for(i = 0; i <= nl; i++)
+		sub(/^(  ? ?|	)/,"");
 }
-/^$/ { text = "<p>" text "</p>";} # TODO: multiple paragraphs
+/^$/ {
+	text = substr(text, 0, lp) "<p>" substr(text, lp) "</p>";
+	lp = length(text) + 2;
+}
 
 # Code blocks
 /^(    |	)/ && block != "li" {
