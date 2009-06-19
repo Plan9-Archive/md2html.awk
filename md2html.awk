@@ -65,7 +65,7 @@ BEGIN {
 }
 
 # Horizontal rules (_ is not in markdown)
-/^[ 	]*([-*_] ?)+[ 	]*$/ && text == "" { # TODO: md.pl comp
+/^ *([-*_][ 	]*([-*_][ 	]*))([-*_][ 	]*)+$/ && ! text {
 	print "<hr>";
 	next;
 }
