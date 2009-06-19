@@ -61,7 +61,7 @@ BEGIN {
 
 	# Escape html
 	gsub("&", "\\&amp;");
-	gsub("<", "\\&lt; ");
+	gsub("<", "\\&lt;");
 }
 
 # Horizontal rules (_ is not in markdown)
@@ -165,19 +165,20 @@ BEGIN {
 		split(substr($0, RSTART + 1, RLENGTH - 2), a, /\]\(/);
 		sub(/\[[^\]]+\]\([^\)]+\)/, dolink(a[2], a[1]));
 	}
-	# Word by word
+	# Undo html word by word
 	for(i = 1; i <= NF; i++){
-		#undo &html;
 		gsub("&amp;.+;", "\\&&", $i);
 		gsub("&&amp;", "\\&", $i);
-		# Auto links (uri matching is poor)
-		if(match($i, /^<(((https?|ftp|file|news|irc):\/\/)|(mailto:)).+>$/)) {
-			link = substr($i, RSTART + 1, RLENGT -2);
-			sub($i, dolink(link, link));
+		gsub("&lt;[A-Za-z !/]", "<&", $i);
+		gsub("<&lt;", "<", $i);
+	}
+	# Auto links (uri matching is poor)
+	nw = split($0, w, /(^\()|[ 	]|([,\.\)]([ 	]|$))/);
+	for(i = 1; i <= nw; i++){
+		if(match(w[i], /^<(((https?|ftp|file|news|irc):\/\/)|(mailto:)).+>$/)) {
+			link = substr(w[i], RSTART + 1, RLENGTH -2);
+			sub(substr(w[i],RSTART,RLENGTH), dolink(link, link));
 		}
-		#undo <html>
-		gsub("&lt;[^A-Za-z !/]", "<<", $i);
-		gsub("<<&lt;", "<", $i);
 	}
 	# Inline (TODO: underscores ?)
 	subinline("(\\*\\*)|(__)", "strong");
