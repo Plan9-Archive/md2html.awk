@@ -5,7 +5,9 @@
 
 function newblock(nblock){
 	if(block == "code")
-		text = "<pre>" text "</pre>";
+		text = "<pre>\n" text "</pre>";
+	while(text && block != "li" && nl > 0)
+		print "</" list[nl--] ">";
 	if(text)
 		print "<" block ">" text "</" block ">";
 	text = "";
@@ -17,6 +19,7 @@ function subinline(tgl, inl){
 	$0 = "";
 	while(match(res, tgl)){
 		nres = substr(res, RSTART + RLENGTH);
+		il = inline[ni];
 		if(inline[ni] == inl){
 			tag = "</" inl ">";
 			ni--;
@@ -25,8 +28,21 @@ function subinline(tgl, inl){
 			tag = "<" inl ">";
 			inline[++ni] = inl;
 		}
-		$0 = $0 substr(res, 0, RSTART - 1) tag;
+		inltext = substr(res, 0, RSTART - 1);
+		if(tgl == "`" && il == "code"){
+			gsub("&amp;#?[A-Za-z0-9]+;", "\\&&", inltext);
+			gsub("&&amp;", "\\&", inltext);
+			gsub("&lt;[A-Za-z !/]", "<&", inltext);
+			gsub("<&lt;", "<", inltext);
+		}
+		$0 = $0 inltext tag;
 		res = nres;
+	}
+	if(tgl == "`" && inline[ni] != "code"){
+		gsub("&amp;#?[A-Za-z0-9]+;", "\\&&", res);
+		gsub("&&amp;", "\\&", res);
+		gsub("&lt;[A-Za-z!/]", "<&", res);
+		gsub("<&lt;", "<", res);
 	}
 	$0 = $0 res;
 }
@@ -46,7 +62,7 @@ BEGIN {
 {
 	# Quote blocks
 	nnq = 0;
-	while(sub(/^>/,""))
+	while(sub(/^> ?/,""))
 		nnq++;
 	if(nnq != nq)
 		newblock();
@@ -64,9 +80,10 @@ BEGIN {
 	gsub("<", "\\&lt;");
 }
 
-# Horizontal rules (_ is not in markdown)
-/^ *([-*_][ 	]*([-*_][ 	]*))([-*_][ 	]*)+$/ && ! text {
+# Horizontal rules
+/^ ? ? ?([-*_][ 	]*)([-*_][ 	]*)([-*_][ 	]*)+$/ && text ~ /[ 	]*/ {
 	print "<hr>";
+	text = "";
 	next;
 }
 
@@ -95,8 +112,15 @@ BEGIN {
 # Paragraph
 /^$/{
 	newblock();
-	while(nl > 0)
-		print "</" list[nl--] ">";
+	next;
+}
+
+# Code blocks
+/^(    |	)/ && block != "li" {
+	if(block != "code")
+		newblock("code");
+	sub(/^(    |	)/, "");
+	text = text $0 "\n";
 	next;
 }
 
@@ -157,35 +181,25 @@ block == "li" {
 }
 
 {
+	subinline("`", "code");
 	# Images
 	while(match($0, /!\[[^\]]+\]\([^\)]+\)/)){
 		split(substr($0, RSTART + 2, RLENGTH - 3), a, /\]\(/);
-		sub(/!\[[^\]]+\]\([^\)]+\)/, "<img src=\"" a[2] "\" alt=\"" a[1] "\">");
+		$0 = substr($0, 0, RSTART - 1) "<img src=\"" a[2] "\" alt=\"" a[1] "\">" substr($0, RSTART + RLENGTH);
 	}
 	# Links
 	while(match($0, /\[[^\]]+\]\([^\)]+\)/)){
 		split(substr($0, RSTART + 1, RLENGTH - 2), a, /\]\(/);
-		sub("&", "\\\\\\&", a[1]);
-		sub("&", "\\\\\\&", a[2]);
-		sub(/\[[^\]]+\]\([^\)]+\)/, dolink(a[2], a[1]));
-	}
-	# Undo html word by word
-	for(i = 1; i <= NF; i++){
-		gsub("&amp;.+;", "\\&&", $i);
-		gsub("&&amp;", "\\&", $i);
-		gsub("&lt;[A-Za-z !/]", "<&", $i);
-		gsub("<&lt;", "<", $i);
+		$0 = substr($0, 0, RSTART - 1) dolink(a[2], a[1]) substr($0, RSTART + RLENGTH);
 	}
 	# Auto links (uri matching is poor)
 	while(match($0, /<(((https?|ftp|file|news|irc):\/\/)|(mailto:))[^>]+>/)) {
 		link = substr($0, RSTART + 1, RLENGTH -2);
-		sub("&", "\\\\\\&", link);
-		sub(substr($0,RSTART,RLENGTH), dolink(link, link));
+		$0 = substr($0, 0, RSTART - 1) dolink(link, link) substr($0, RSTART + RLENGTH);
 	}
 	# Inline (TODO: underscores ?)
 	subinline("(\\*\\*)|(__)", "strong");
 	subinline("\\*", "em");
-	subinline("`", "code");	# TODO: html escaping
 	text = text (text ? " " : "") $0;
 }
 
@@ -195,4 +209,8 @@ END {
 	newblock();
 	while(nl > 0)
 		print "</" list[nl--] ">";
+	while(nq > 0){
+		print "</blockquote>";
+		nq--;
+	}
 }
