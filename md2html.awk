@@ -31,8 +31,8 @@ function subinline(tgl, inl){
 	$0 = $0 res;
 }
 
-function dolink(href, lnk){
-	return "<a href=\"" href "\">" lnk "</a>";
+function dolink(href, link){
+	return "<a href=\"" href "\">" link "</a>";
 }
 
 BEGIN {
@@ -157,8 +157,6 @@ block == "li" {
 }
 
 {
-	# undo \&
-	gsub("\\\\&amp;", "\\&");
 	# Images
 	while(match($0, /!\[[^\]]+\]\([^\)]+\)/)){
 		split(substr($0, RSTART + 2, RLENGTH - 3), a, /\]\(/);
@@ -167,6 +165,8 @@ block == "li" {
 	# Links
 	while(match($0, /\[[^\]]+\]\([^\)]+\)/)){
 		split(substr($0, RSTART + 1, RLENGTH - 2), a, /\]\(/);
+		sub("&", "\\\\\\&", a[1]);
+		sub("&", "\\\\\\&", a[2]);
 		sub(/\[[^\]]+\]\([^\)]+\)/, dolink(a[2], a[1]));
 	}
 	# Undo html word by word
@@ -179,6 +179,7 @@ block == "li" {
 	# Auto links (uri matching is poor)
 	while(match($0, /<(((https?|ftp|file|news|irc):\/\/)|(mailto:))[^>]+>/)) {
 		link = substr($0, RSTART + 1, RLENGTH -2);
+		sub("&", "\\\\\\&", link);
 		sub(substr($0,RSTART,RLENGTH), dolink(link, link));
 	}
 	# Inline (TODO: underscores ?)
