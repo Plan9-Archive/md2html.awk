@@ -173,12 +173,9 @@ BEGIN {
 		gsub("<&lt;", "<", $i);
 	}
 	# Auto links (uri matching is poor)
-	nw = split($0, w, /(^\()|[ 	]|([,\.\)]([ 	]|$))/);
-	for(i = 1; i <= nw; i++){
-		if(match(w[i], /^<(((https?|ftp|file|news|irc):\/\/)|(mailto:)).+>$/)) {
-			link = substr(w[i], RSTART + 1, RLENGTH -2);
-			sub(substr(w[i],RSTART,RLENGTH), dolink(link, link));
-		}
+	while(match($0, /<(((https?|ftp|file|news|irc):\/\/)|(mailto:))[^>]+>/)) {
+		link = substr($0, RSTART + 1, RLENGTH -2);
+		sub(substr($0,RSTART,RLENGTH), dolink(link, link));
 	}
 	# Inline (TODO: underscores ?)
 	subinline("(\\*\\*)|(__)", "strong");
