@@ -81,7 +81,9 @@ BEGIN {
 }
 
 # Horizontal rules
-/^ ? ? ?([-*_][ 	]*)([-*_][ 	]*)([-*_][ 	]*)+$/ && text ~ /[ 	]*/ {
+/^ ? ? ?([-*_][ 	]*)([-*_][ 	]*)([-*_][ 	]*)+$/ && text ~ /^[ 	]*$/ {
+	while(block != "li" && nl > 0)
+		print "</" list[nl--] ">";
 	print "<hr>";
 	text = "";
 	next;
