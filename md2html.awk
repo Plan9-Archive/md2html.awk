@@ -8,8 +8,12 @@ function newblock(nblock){
 		text = "<pre>\n" text "</pre>";
 	while(text && block != "li" && nl > 0)
 		print "</" list[nl--] ">";
-	if(text)
-		print "<" block ">" text "</" block ">";
+	if(text) {
+		if(block == "p" && match(text, /^<.*>$/))
+			print text;
+		else
+			print "<" block ">" text "</" block ">";
+	}
 	text = "";
 	block = nblock ? nblock : "p";
 }
@@ -59,6 +63,13 @@ BEGIN {
 	block = "p";
 }
 
+# html
+block == "p" && /^[ 	]*<[A-Za-z\/!].*>[ 	]*$/ {
+	newblock();
+	print;
+	next;
+}
+
 {
 	# Quote blocks
 	nnq = 0;
@@ -91,8 +102,8 @@ BEGIN {
 
 # Tables (not in markdown)
 # Syntax:
-# 		Right Align| 	Center Align	|Left Align
-/([ 	]\|)|(\|[ 	])/ && block != "code" {
+# | 		Right Align| 	Center Align	|Left Align	|
+/^\|.*/ && /([ 	]\|)|(\|[ 	])/ && block != "code" {
 	if(block != "table")
 		newblock("table");
 	nc = split($0, cells, "|");
